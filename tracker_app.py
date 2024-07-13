@@ -1,13 +1,13 @@
 '''Create a program that allows the user to:
 ○ add new expense categories to the database (check)---------------------
 ○ update an expense amount (check)---------------------------------------
-○ delete an expense category from the database
-○ track their spending
-○ add income
-○ add income categories
-○ delete an income category from the database
-○ track their income
-○ View expense or income categories
+○ delete an expense category from the database (check)-------------------
+○ track their spending (check)-------------------------------------------
+○ add income (check)-----------------------------------------------------
+○ add income categories (check)------------------------------------------
+○ delete an income category from the database (check)--------------------
+○ track their income (check)---------------------------------------------
+○ View expense or income categories (check)------------------------------
 ○ The program should be able to calculate the user’s budget based on
 the income and expenses that they have provided
 ● Install the SQLite library. This will allow your app to communicate with the
@@ -51,16 +51,12 @@ CREATE TABLE IF NOT EXISTS expenses(
     UNIQUE(expense_category, expense_name))''')
 
 cursor.execute('''
-CREATE TABLE IF NOT EXISTS income_category(
-    id INTEGER PRIMARY KEY,
-    income_category TEXT NOT NULL UNIQUE)''')
-
-cursor.execute('''
 CREATE TABLE IF NOT EXISTS income(
     id INTEGER PRIMARY KEY,
-    income_name TEXT NOT NULL UNIQUE,
+    income_category TEXT NOT NULL,
+    income_name TEXT NOT NULL,
     amount REAL,
-    FOREIGN KEY(id) REFERENCES income_category(id))''')
+    UNIQUE(income_category, income_name))''')
 
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS budget(
@@ -77,6 +73,7 @@ CREATE TABLE IF NOT EXISTS financial_goals(
     current_amount REAL)''')
 
 db.commit()
+
 
 def add_expense_category():
       try:
@@ -96,6 +93,7 @@ def add_expense_category():
 
       db.commit()
 
+
 def view_expense():
       try:
             cursor.execute('''
@@ -112,6 +110,7 @@ def view_expense():
 
       db.commit()
 
+
 def view_expense_category():
       try:
             cursor.execute('''
@@ -119,7 +118,7 @@ def view_expense_category():
             categories = cursor.fetchall()
 
             if categories:
-                  print("\nThe following categories for expenses are shown: ")
+                  print("\nThe following categories of expenses are shown: ")
                   for category in categories:
                         print(f"- {category[0]}")
                   expense_name = input("Type in the category you would like to see! : ").strip().title()
@@ -134,7 +133,18 @@ def view_expense_category():
                               print(f"Category ({row[0]}) : Expense ({row[1]}) : Amount R{row[2]:.2f}.")
                               total += row[2]
                         print(f"\nTotal Expense by {expense_name} is R{total}")
+                        change = input(f"Would you like to make changes? (Y/N): ").strip().lower()
 
+                        if change in ["y", "yes"]:
+                              print("Proceeding to changes...")
+                              delete = input(f"Would you like to remove this category? (Y/N): ").strip().lower()
+                              if delete in ["y", "yes"]:
+                                    cursor.execute('''
+                                    DELETE FROM expenses WHERE expense_category = ?''', (expense_name,))
+                                    db.commit()
+                                    print(f"Deleted category.")
+                              else:
+                                    print("No changes made.")
                   else:
                         print("Error : Check if your spelling is correct and shown on the above categories!")
             else:
@@ -146,10 +156,158 @@ def view_expense_category():
       db.commit()
 
 
-      
+def add_income_category():
+      try:
+            category_name = input("Type in Income category (e.g. Work, Salary, etc.) : ").strip().title()
+            print("# Note that your amount would automatically update if you type in the name of an existing income:")
+            income_name = input("What is the name of your income (e.g. Freelance, Hyperiondev, etc.) : ").strip().title()
+            amount = float(input("Input the Amount of the income : R"))
+            cursor.execute('''
+            INSERT OR REPLACE INTO income(income_category, income_name, amount)
+            VALUES (?, ?, ?)''',(category_name, income_name, amount))
+            print(f"Total income of R{amount:.2f} was added to {category_name}.")
+            db.commit()
+      except ValueError as ve:
+            print(f"Error: Please enter a number to the amount / {ve}")
+      except Exception as e:
+            print(f"Error: {e}")
+
+      db.commit()
+
+
+def view_income():
+      try:
+            cursor.execute('''
+            SELECT id, income_category, income_name, amount FROM income''')
+            print("\nViewing all Income:")
+            total = 0
+            for row in cursor:
+                  print(f"ID {row[0]} : Category ({row[1]}) : Income ({row[2]}): Amount R{row[3]:.2f}")
+                  total += row[3]
+            print(f"Total Income is R{total:.2f}")
+
+      except Exception as e:
+            print(f"Error : {e}")
+
+      db.commit()
+
+
+def view_income_category():
+      try:
+            cursor.execute('''
+            SELECT DISTINCT income_category FROM income''')
+            categories = cursor.fetchall()
+
+            if categories:
+                  print("\nThe following categories of income are shown: ")
+                  for category in categories:
+                        print(f"- {category[0]}")
+                  income_name = input("Type in the category you would like to see! : ").strip().title()
+
+                  cursor.execute('''
+                  SELECT income_category, income_name, amount FROM income WHERE income_category = ?''', (income_name,))
+                  income_category = cursor.fetchall()
+                  total = 0
+
+                  if income_category:
+                        for row in income_category:
+                              print(f"Category ({row[0]}) : Income ({row[1]}) : Amount R{row[2]:.2f}.")
+                              total += row[2]
+                        print(f"\nTotal Income by {income_name} is R{total}")
+                        change = input(f"Would you like to make changes? (Y/N): ").strip().lower()
+
+                        if change in ["y", "yes"]:
+                              print("Proceeding to changes...")
+                              delete = input(f"Would you like to remove this category? (Y/N): ").strip().lower()
+                              if delete in ["y", "yes"]:
+                                    cursor.execute('''
+                                    DELETE FROM income WHERE income_category = ?''', (income_name,))
+                                    db.commit()
+                                    print(f"Deleted category.")
+                              else:
+                                    print("No changes made.")
+                  else:
+                        print("Error : Check if your spelling is correct and shown on the above categories!")
+            else:
+                  print("You have no categories yet, make sure you added one!")
+
+      except Exception as e:
+            print(f"Error : {e}")
+
+      db.commit()
+
+
+def set_budget():
+      try:
+            while True:
+                  print("# Note that if the name is found in the Database, it would update automatically.")
+                  category_name = input("Enter the category name for the budget: ").strip().title()
+                  if category_name:
+                        break
+                  print("Category name cannot be empty. Please enter a valid category name.")
+
+            while True:
+                  try:
+                        amount = float(input("Enter the budget amount: R"))
+                        break
+                  except ValueError:
+                        print("Invalid input. Please enter a numeric value for the amount.")
+
+            cursor.execute('''
+            INSERT OR REPLACE INTO budget (category_name, amount)
+            VALUES (?, ?)''', (category_name, amount))
+            db.commit()
+            print(f"Budget of R{amount:.2f} has been set for category '{category_name}'.")
+      except Exception as e:
+            print(f"Error: {e}")
+
+def view_budget(): # Moet nog laat dit BUDGET uitwerk. Wins = Inkomste - Uitgawes
+    try:
+        cursor.execute('''
+        SELECT DISTINCT category_name FROM budget''')
+        categories = cursor.fetchall()
+
+        if categories:
+            print("\nThe following budget categories are shown: ")
+            for category in categories:
+                print(f"- {category[0]}")
+            category_name = input("Type in the category you would like to see: ").strip().title()
+
+            cursor.execute('''
+            SELECT category_name, amount FROM budget WHERE category_name = ?''', (category_name,))
+            budget_category = cursor.fetchall()
+            total = 0
+
+            if budget_category:
+                for row in budget_category:
+                    print(f"Category ({row[0]}) : Amount R{row[1]:.2f}.")
+                    total += row[1]
+                print(f"\nTotal Budget for {category_name} is R{total:.2f}")
+                change = input(f"Would you like to make changes? (Y/N): ").strip().lower()
+
+                if change in ["y", "yes"]:
+                    print("Proceeding to changes...")
+                    delete = input(f"Would you like to remove this category? (Y/N): ").strip().lower()
+                    if delete in ["y", "yes"]:
+                        cursor.execute('''
+                        DELETE FROM budget WHERE category_name = ?''', (category_name,))
+                        db.commit()
+                        print(f"Deleted category '{category_name}'.")
+                    else:
+                        print("No changes made.")
+            else:
+                print("Error: Check if your spelling is correct and shown in the above categories!")
+        else:
+            print("You have no budget categories yet, make sure you added one!")
+    except Exception as e:
+        print(f"Error: {e}")
+
+    db.commit()
+
+
 def main():
       while True:
-            print("\nWelcome to your budget planner! Please pick only the number of the option to proceed:")
+            print("\nWelcome to your budget planner Menu! Please pick only the number of the option to proceed:")
             print("\n1. Add expense\n"
             "2. View expenses\n"
             "3. View expenses by category\n"
@@ -167,28 +325,28 @@ def main():
             try:
                   if option == "1":
                         add_expense_category()
-
+                        input("Press Enter to route back to the menu.")
                   elif option == "2":
                         view_expense()
-
+                        input("Press Enter to route back to the menu.")
                   elif option == "3":
                         view_expense_category()
-
+                        input("Press Enter to route back to the menu.")
                   elif option == "4":
-                        pass
-
+                        add_income_category()
+                        input("Press Enter to route back to the menu.")
                   elif option == "5":
-                        pass
-
+                        view_income()
+                        input("Press Enter to route back to the menu.")
                   elif option == "6":
-                        pass
-
+                        view_income_category()
+                        input("Press Enter to route back to the menu.")
                   elif option == "7":
-                        pass
-
+                        set_budget()
+                        input("Press Enter to route back to the menu.")
                   elif option == "8":
-                        pass
-
+                        view_budget()
+                        input("Press Enter to route back to the menu.")
                   elif option == "9":
                         pass
 
