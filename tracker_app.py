@@ -36,7 +36,7 @@ insert data.
 The program should perform the function that the user selects. The
 implementation of these functions is left up to you.'''
 
-
+import sys
 import sqlite3
 
 db = sqlite3.connect('Budget_Tracker_App.db')
@@ -80,8 +80,8 @@ db.commit()
 
 def add_expense_category():
       try:
-            category_name = input("Type in head category (e.g. Home, Car, Family etc) : ").strip().title()
-            print("# Note that your amount would automatically update if the name of your expenses are the same:")
+            category_name = input("Type in Expense category (e.g. Home, Car, Family etc) : ").strip().title()
+            print("# Note that your amount would automatically update if you type in the name of an existing expense:")
             expense_name = input("What is the name of your expense (e.g. Microwave for Home, car parts for Car, sister/brother for Family) : ").strip().title()
             amount = float(input("Input the Amount of the expense : R"))
             cursor.execute('''
@@ -94,19 +94,23 @@ def add_expense_category():
       except Exception as e:
             print(f"Error: {e}")
 
+      db.commit()
 
 def view_expense():
       try:
             cursor.execute('''
             SELECT id, expense_category, expense_name, amount FROM expenses''')
             print("\nViewing all Expenses:")
+            total = 0
             for row in cursor:
-                  print(f"ID {row[0]} : {row[1]} ({row[2]}): R{row[3]:.2f}")
+                  print(f"ID {row[0]} : Category ({row[1]}) : Expense ({row[2]}): Amount R{row[3]:.2f}")
+                  total += row[3]
+            print(f"Total Expense is R{total:.2f}")
 
       except Exception as e:
             print(f"Error : {e}")
-      finally:
-            db.close()
+
+      db.commit()
 
 def view_expense_category():
       try:
@@ -115,7 +119,7 @@ def view_expense_category():
             categories = cursor.fetchall()
 
             if categories:
-                  print("\nThe following categories are shown: ")
+                  print("\nThe following categories for expenses are shown: ")
                   for category in categories:
                         print(f"- {category[0]}")
                   expense_name = input("Type in the category you would like to see! : ").strip().title()
@@ -123,35 +127,82 @@ def view_expense_category():
                   cursor.execute('''
                   SELECT expense_category, expense_name, amount FROM expenses WHERE expense_category = ?''', (expense_name,))
                   expense_category = cursor.fetchall()
+                  total = 0
 
                   if expense_category:
-                        print(f"- {expense_category}:\n")   # hier moet for loop kom.
-
+                        for row in expense_category:
+                              print(f"Category ({row[0]}) : Expense ({row[1]}) : Amount R{row[2]:.2f}.")
+                              total += row[2]
+                        print(f"\nTotal Expense by {expense_name} is R{total}")
 
                   else:
-                        print("Error : Check if your spelling is correct and on shown on the above categories!")
+                        print("Error : Check if your spelling is correct and shown on the above categories!")
             else:
                   print("You have no categories yet, make sure you added one!")
-
-
-
 
       except Exception as e:
             print(f"Error : {e}")
 
+      db.commit()
 
+
+      
 def main():
-    print("\n1. Add expense\n"
-          "2. View expenses\n"
-          "3. View expenses by category\n"
-          "4. Add income\n"
-          "5. View income\n"
-          "6. View income by category\n"
-          "7. Set budget for a category\n"
-          "8. View budget for a category\n"
-          "9. Set financial goals\n"
-          "10. View progress towards financial goals\n"
-          "11. Quit")
+      while True:
+            print("\nWelcome to your budget planner! Please pick only the number of the option to proceed:")
+            print("\n1. Add expense\n"
+            "2. View expenses\n"
+            "3. View expenses by category\n"
+            "4. Add income\n"
+            "5. View income\n"
+            "6. View income by category\n"
+            "7. Set budget for a category\n"
+            "8. View budget for a category\n"
+            "9. Set financial goals\n"
+            "10. View progress towards financial goals\n"
+            "11. Quit")
 
-view_expense_category()
+            option = input("Please choose your option : ").strip()
+
+            try:
+                  if option == "1":
+                        add_expense_category()
+
+                  elif option == "2":
+                        view_expense()
+
+                  elif option == "3":
+                        view_expense_category()
+
+                  elif option == "4":
+                        pass
+
+                  elif option == "5":
+                        pass
+
+                  elif option == "6":
+                        pass
+
+                  elif option == "7":
+                        pass
+
+                  elif option == "8":
+                        pass
+
+                  elif option == "9":
+                        pass
+
+                  elif option == "10":
+                        pass
+
+                  elif option == "11":
+                        print("Quiting Application. Goodbye!")
+                        sys.exit()
+                  else:
+                        print(f"\nMake sure you only type in the NUMBER of your option. (e.g. 1 or 2)")
+            except Exception as e:
+                  print(f"Error : {e}")
+
+
+main()
 
